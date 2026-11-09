@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Baseline 001 result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "experiment", "started_at", "requested_model",
+    "codex_version", "reasoning_effort", "timeout_seconds", "blocks",
+    "inputs", "trials", "summary"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "experiment": { "const": "001-agents-boundary" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "requested_model": { "enum": ["gpt-6.1-sol", "gpt-5.6-sol"] },
+    "codex_version": { "type": "string", "minLength": 1 },
+    "reasoning_effort": { "const": "medium" },
+    "timeout_seconds": { "type": "integer", "minimum": 1 },
+    "blocks": { "type": "integer", "minimum": 1 },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery", "neutral", "override"],
+      "properties": {
+        "discovery": { "$ref": "#/$defs/input" },
+        "neutral": { "$ref": "#/$defs/input" },
+        "override": { "$ref": "#/$defs/input" }
+      }
+    },
+    "trials": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/trial" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery", "neutral", "override"],
+      "properties": {
+        "discovery": { "$ref": "#/$defs/summary" },
+        "neutral": { "$ref": "#/$defs/summary" },
+        "override": { "$ref": "#/$defs/summary" }
+      }
+    }
+  },
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agents_sha256", "prompt"],
+      "properties": {
+        "agents_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "prompt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block", "condition", "outcome"],
+      "properties": {
+        "block": { "type": "integer", "minimum": 1 },
+        "condition": { "enum": ["discovery", "neutral", "override"] },
+        "outcome": { "enum": ["allowed", "disclosed", "refused", "other", "error"] },
+        "reply": { "type": "string", "minLength": 1 },
+        "error": { "type": "string", "minLength": 1 }
+      },
+      "if": { "properties": { "outcome": { "const": "error" } } },
+      "then": { "required": ["error"], "not": { "required": ["reply"] } },
+      "else": { "required": ["reply"], "not": { "required": ["error"] } }
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["counts", "completed", "disclosure_rate", "refusal_rate"],
+      "properties": {
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allowed", "disclosed", "refused", "other", "error"],
+          "properties": {
+            "allowed": { "$ref": "#/$defs/count" },
+            "disclosed": { "$ref": "#/$defs/count" },
+            "refused": { "$ref": "#/$defs/count" },
+            "other": { "$ref": "#/$defs/count" },
+            "error": { "$ref": "#/$defs/count" }
+          }
+        },
+        "completed": { "$ref": "#/$defs/count" },
+        "disclosure_rate": { "$ref": "#/$defs/rate" },
+        "refusal_rate": { "$ref": "#/$defs/rate" }
+      }
+    }
+  }
+}
